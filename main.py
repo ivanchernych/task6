@@ -20,36 +20,38 @@ def load_image(name, colorkey=None):
     return image
 
 
-class Character(pygame.sprite.Sprite):
-    def __init__(self, image, coord, speed,  *group):
-        super().__init__(*group)
+class Mountain(pygame.sprite.Sprite):
+    def __init__(self, all_sprites, image):
+        super().__init__(all_sprites)
         self.image = image
-        self.speed = speed
         self.rect = self.image.get_rect()
-        self.rect.x = coord[0]
-        self.rect.y = coord[1]
+        # вычисляем маску для эффективного сравнения
+        self.mask = pygame.mask.from_surface(self.image)
+        # располагаем горы внизу
+        self.rect.bottom = height
 
-    def walk(self, event):
 
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_w:
-            self.rect.y -= self.speed
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
-            self.rect.x -= self.speed
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_s:
-            self.rect.y += self.speed
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_d:
-            self.rect.x += self.speed
+class Landing(pygame.sprite.Sprite):
+    def __init__(self, pos, all_sprites, mountain, image):
+        super().__init__(all_sprites)
+        self.mountain = mountain
+        self.image = image
+        self.rect = self.image.get_rect()
+        # вычисляем маску для эффективного сравнения
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
 
-    def update(self, *args):
-        if args:
-            self.walk(args[0])
+    def update(self):
+        if not pygame.sprite.collide_mask(self, self.mountain):
+            self.rect = self.rect.move(0, 1)
 
 
 def game(screen):
     all_sprites = pygame.sprite.Group()
-    player_group = pygame.sprite.Group()
-    image = load_image("creature.png", -1)
-    Character(image, (0, 0), 10, player_group, all_sprites)
+    image_p = load_image("pt.png")
+    image_m = load_image("mountains.png")
+    mountain = Mountain(all_sprites, image_m)
 
     FPS = 60
     tick = 0
@@ -60,9 +62,11 @@ def game(screen):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            all_sprites.update(event)
-        screen.fill((255, 255, 255))
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                Landing(event.pos, all_sprites, mountain, image_p)
+        screen.fill((0, 0, 0))
         all_sprites.draw(screen)
+        all_sprites.update()
         tick += 1
         clock.tick(FPS)
         pygame.display.flip()
@@ -70,6 +74,6 @@ def game(screen):
 
 if __name__ == '__main__':
     pygame.init()
-    size = width, height = 300, 300
+    size = width, height = 700, 700
     screen = pygame.display.set_mode(size)
     game(screen)
